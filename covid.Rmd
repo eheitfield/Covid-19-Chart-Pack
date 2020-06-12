@@ -1,0 +1,719 @@
+---
+title: "Erik's Covid-19 Chart Pack"
+output:
+  html_document:
+    df_print: paged
+  html_notebook: default
+  pdf_document: default
+---
+
+Data upadated `r Sys.time()`.  World data are from [Worldometers](https://github.com/NovelCovid/API). National and state-level mortality, case, and testing data are from [Johns-Hopkins University](https://covidtracking.com). County and city-level mortality and case data are from the [New York Times](https://github.com/NovelCovid/API). Most data presented in this report were accessed through APIs provided by [The COVID Tracking Project](https://covidtracking.com) and [NovelCOVID API](https://github.com/NovelCovid/API).
+
+```{r setup, include=FALSE}
+
+# Dependencies
+library(tidyverse)
+library(dplyr)
+library(ggplot2)
+library(scales)
+library(zoo)
+#library(spData)
+library(sf)
+library(tmap)
+library(kableExtra)
+library(jsonlite)
+library(urbnmapr)
+library(geofacet)
+
+# Global style settings
+knitr::opts_chunk$set(
+  echo = FALSE,
+  warning = FALSE,
+  message = FALSE
+)
+theme_set(theme_bw())
+
+# Import world data
+continents <- fromJSON("https://disease.sh/v2/continents?yesterday=true") %>%
+  arrange(continent)
+countries <- fromJSON("https://disease.sh/v2/countries?yesterday=true") %>%
+  mutate(iso_a3 = countryInfo$iso3)
+
+# Import US data
+usData <- read.csv("https://covidtracking.com/api/us/daily.csv")
+usData$date = as.Date(as.character(usData$date), format = "%Y%m%d")
+usData <- usData %>% 
+  filter(date >= as.Date("2020-03-7")) %>%
+  arrange(date) %>%
+  mutate(activeCases = positive - recovered - death) %>%
+  mutate(activeIncrease = activeCases - lag(activeCases,1)) %>%
+  mutate(caseDeathRate = death/positive) %>%
+  mutate(testPositiveRate = positiveIncrease/totalTestResultsIncrease) %>%
+  mutate(dailyPositiveRate_ = positiveIncrease/totalTestResultsIncrease) %>%
+  mutate(weekAverageDeaths = rollmean(deathIncrease,k=7,align="right", fill=NA)) %>%
+  mutate(weekAverageCases = rollmean(positiveIncrease,k=7,align="right", fill=NA)) %>%
+  mutate(weekAverageTests = rollmean(totalTestResultsIncrease,k=7,align="right", fill=NA)) %>%
+  mutate(weekChangeDeaths = deathIncrease - lag(deathIncrease,7)) %>%
+  mutate(weekChangeCases = positiveIncrease - lag(positiveIncrease,7)) %>%
+  mutate(weekChangeTests = totalTestResultsIncrease - lag(totalTestResultsIncrease,7))
+```
+
+# World Data
+
+There have been `r format(sum(countries$cases),big.mark = ",")` confirmed covid-19 cases and `r format(sum(countries$deaths),big.mark = ",")` deaths worldwide.
+
+```{r}
+ggplot(continents, aes(x=continent,y=deaths)) +
+  geom_col() +
+  labs(title = "Deaths", y="Total Deaths") +
+  scale_y_continuous(labels = comma) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank()) +
+  coord_flip()
+```
+
+```{r}
+ggplot(continents, aes(x=continent,y=cases)) +
+  geom_col() +
+  labs(title = "Cases", y="Total Cases") +
+  scale_y_continuous(labels = comma) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank()) +
+  coord_flip()
+```
+
+
+
+```{r}
+countryList <- c("US","GB","CN")
+
+countryTable <- countries %>% 
+  select(country,cases,deaths,todayCases,todayDeaths) %>%
+  rename(Cases = cases, Deaths = deaths, "New Cases" = todayCases, "New Deaths" = todayDeaths) %>%
+  arrange(desc(Cases)) %>%
+  head(10)
+
+knitr::kable( 
+  countryTable,
+  caption = "Top Countries by Cases", 
+  digits = 8, format = "html",
+  format.args = list(big.mark = ",")) %>% 
+  kable_styling()
+```
+
+```{r}
+data("World")
+World$iso_a3 <- as.character(World$iso_a3)
+World <- st_transform(World,4326)
+worldMapData <- right_join(World,countries,by="iso_a3") 
+worldMapData$deathsPerOneMillion[worldMapData$deathsPerOneMillion==0] = NA
+worldMapData$casesPerOneMillion[worldMapData$casesPerOneMillion==0] = NA
+worldMapData$testsPerOneMillion[worldMapData$testsPerOneMillion==0] = NA
+
+tm_shape(worldMapData) + tm_borders() + 
+  tm_fill(col = "deathsPerOneMillion", style = "log10", title = "Deaths per Million") +
+  tm_layout(bg.color = "skyblue")
+```
+
+```{r}
+tm_shape(worldMapData) + tm_borders() + 
+  tm_fill(col = "casesPerOneMillion", style = "log10", title = "Cases per Million") +
+  tm_layout(bg.color = "skyblue")
+```
+
+```{r}
+tm_shape(worldMapData) + tm_borders() + 
+  tm_fill(col = "testsPerOneMillion", style = "log10", title = "Tests per Million", palette = "BuGn") +
+  tm_layout(bg.color = "skyblue")
+```
+
+# National Data
+
+There have been `r format(max(usData$positive),big.mark = ",")` confirmed covid-19 cases and `r format(max(usData$death),big.mark = ",")` deaths in the United States.
+
+```{r}
+usData %>% 
+  select(date,positive,death,positiveIncrease,deathIncrease) %>% 
+  arrange(desc(date)) %>%
+  top_n(n=7,wt=date) %>%
+  rename(Date = date, 
+         "Cases" = positive, 
+         "Deaths" = death, 
+         "New Cases" = positiveIncrease, 
+         "New Deaths" = deathIncrease) %>%
+  knitr::kable(caption = "Last 7 Days", digits = c(8,7,7,7,7,2,2), format = "html", format.args = list(big.mark = ",")) %>% 
+  kable_styling()
+
+counties <- get_urbn_map("counties", sf = TRUE) %>%
+  st_transform(2163) %>%
+  mutate(fips = as.integer(county_fips))
+
+countyData <- fromJSON("https://disease.sh/v2/nyt/counties") %>%
+  filter(date == max(date)) %>%
+  mutate(fips = as.integer(fips))
+
+countyDemographic <- read.csv("county_pop.csv") %>%
+  select(STATE,COUNTY,STNAME,CTYNAME,POPESTIMATE2019) %>%
+  mutate(fips = STATE*1000 + COUNTY)
+
+countyMapData <- left_join(counties,countyData, by = "fips") 
+countyMapData <- left_join(countyMapData,countyDemographic, by = "fips")
+countyMapData <- countyMapData %>%
+  mutate(deathsPerMil = 1e6*(deaths)/(POPESTIMATE2019)) %>%
+  mutate(casesPerMil  = 1e6*(cases)/(POPESTIMATE2019))
+countyMapData$deathsPerMil[countyMapData$deathsPerMil < 0.1] = 0.1
+```
+
+## Deaths
+
+```{r}
+ggplot(usData) + 
+  geom_line(mapping = aes(x = date, y = death), size = 1) +
+  labs(title = "Deaths", x = "Date", y = "Total Deaths") +
+  scale_y_continuous(labels = comma, trans = "log10")
+```
+
+```{r}
+ggplot(usData) +
+  geom_line(mapping = aes(x = date, y = deathIncrease), alpha = 0.4) +
+  geom_smooth(mapping = aes(x = date, y = deathIncrease), se=FALSE, span = 0.5) +
+  labs(title = "New Deaths", x = "Date", y = "Deaths per Day") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+ggplot(usData, aes(x = date, y = deathIncrease/lag(positiveIncrease,14))) +
+  geom_line(alpha = 0.5) +
+  geom_smooth(se=FALSE, span = 0.5) +
+  labs(title = "Daily Case Mortailty Rate", x = "Date", y = "Rate") +
+  scale_y_continuous(labels = percent_format(), limits = c(0.0,0.25))
+```
+
+```{r}
+ggplot(usData, aes(x = date, y = weekChangeDeaths)) + 
+  geom_col(alpha = 0.5) +
+  geom_smooth(se=FALSE, span = 0.5) +
+  labs(title = "One-Week Change in Daily Deaths", x="Date", y="7-Day Change") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+tm_shape(countyMapData) + 
+  tm_borders(lwd = 0.3) + 
+#  tm_fill(col = "deathsPerTho",  style = "fixed", breaks = c(0,0.01,0.1,0.5,1.0,3.0), title = "Deaths Per 1K") +
+  tm_fill(col = "deathsPerMil",  style = "log10", title = "Deaths Per 1M") +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+
+## Cases
+
+```{r}
+ggplot(usData) +
+  geom_line(mapping = aes(x = date, y = activeCases), size=1) +
+  labs(title = "Active Cases", x = "Date", y = "Cases") +
+  scale_y_continuous(labels = comma, trans = "log10")
+```
+
+```{r}
+ggplot(usData) +
+  geom_line(mapping = aes(x = date, y = positiveIncrease), alpha = 0.4) +
+  geom_smooth(mapping = aes(x = date, y = positiveIncrease), se=FALSE, span = 0.5) +
+  labs(title = "New Cases", x = "Date", y = "Cases per Day") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+ggplot(usData, aes(x = date, y = weekChangeCases)) + 
+  geom_col(alpha = 0.5) +
+  geom_smooth(se=FALSE, span = 0.5) +
+  labs(title = "One-Week Change in Daily Cases", x="Date", y="7-Day Change") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+tm_shape(countyMapData) + 
+  tm_borders(lwd = 0.3) + 
+#  tm_fill(col = "casesPerTho", style = "fixed", breaks = c(0,0.1,1.0,5.0,10.0,30.0), title = "Cases Per 1K") +
+  tm_fill(col = "casesPerMil", style = "log10", title = "Cases Per 1M") +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+
+## Testing
+
+```{r}
+ggplot(usData) +
+  geom_line(mapping = aes(x = date, y = totalTestResults),size=1) +
+  labs(title = "Tests", x = "Date", y = "Total Number of Tests") +
+  scale_y_continuous(labels = comma, trans = "log10")
+```
+
+```{r}
+ggplot(usData) +
+  geom_line(mapping = aes(x = date, y = totalTestResultsIncrease), alpha = 0.4) +
+  geom_smooth(mapping = aes(x = date, y = totalTestResultsIncrease), se=FALSE, span=0.5) +
+  labs(title = "New Tests", x = "Date", y = "Tests Per Day") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+ggplot(usData) +
+  geom_line(mapping = aes(x = date, y = testPositiveRate), alpha = 0.4) +
+  geom_smooth(mapping = aes(x = date, y = testPositiveRate), se=FALSE, span=0.5) +
+  labs(title = "Positive Test Rate", x = "Date", y = "Rate per Day") +
+  scale_y_continuous(labels = percent_format(2))
+```
+
+```{r}
+ggplot(usData,  aes(x = date, y = weekChangeTests)) + 
+  geom_col(alpha = 0.5) +
+  geom_smooth(se=FALSE, span = 0.5) +
+  labs(title = "One-Week Change in Daily Tests", x="Date", y="7-Day Change") +
+  scale_y_continuous(labels = comma)
+```
+
+
+# State Data
+
+
+```{r}
+
+# State name to FIPS code crosswalk
+stateFIPS <- read.csv("state_FIPS_codes.csv") %>% 
+  mutate(stusps = trimws(as.character(stusps)))
+
+# Load state level historial data
+stateData <- read.csv("https://covidtracking.com/api/v1/states/daily.csv") %>%
+  mutate(state = as.factor(state)) %>%
+  mutate(date = as.Date(as.character(date), format = "%Y%m%d"))
+
+# Snampshot of most recent state data
+currentStateData <- stateData %>% filter(date == max(date))
+
+# State pupulatons
+statePop = read.csv("state_pop.csv") %>%
+  select(STATE,POPESTIMATE2019) %>%
+  rename(st = STATE, population = POPESTIMATE2019)
+
+# Create state data for mapping
+
+# State map boundary and population data
+states <- get_urbn_map("states", sf = TRUE) %>%
+  mutate(st = as.integer(state_fips))
+states <- left_join(states,statePop, by = "st")
+
+#states <- us_states %>%
+#  st_transform(2163) %>%
+#  mutate(st = as.integer(GEOID)) 
+# Merge current state covid data with geographic data via FIPS crosswalk
+stateMapData <- currentStateData %>%
+  select(state,positive,death,totalTestResults) %>%
+  mutate(stusps = trimws(as.character(state)))
+stateMapData <- full_join(stateMapData,stateFIPS, by="stusps")
+stateMapData <- right_join(states,stateMapData,by="st")
+# Per capita data for mappint
+stateMapData <- stateMapData %>% 
+  mutate(deathsPerMil = 1e6*death/population, 
+         casesPerMil = 1e6*positive/population,
+         testsPerMil = 1e6*totalTestResults/population,
+         positiveTestRate = 100*positive/totalTestResults)
+
+# Create list of 15 largest states by population
+largeStates <- states %>%
+  select(st, population) %>%
+  arrange(desc(population)) %>%
+  rename(fips = st) %>%
+  head(15)
+
+# Add variable to historical data for largest states and others
+bigStateLvls = c(levels((stateData$state)),"Other")
+stateData <- stateData %>%
+  mutate(bigState = if_else(fips %in% largeStates$fips,
+                            factor(state, levels = bigStateLvls),
+                            factor("Other", levels = bigStateLvls)))
+
+# Create summary data aggregating "Other" states together
+bigStatData <- stateData %>%
+  group_by(bigState,date) %>%
+  summarize(death = sum(death, na.rm = TRUE),
+          recovered = sum(recovered, na.rm = TRUE),
+          deathIncrease = sum(deathIncrease, na.rm = TRUE),
+          positive = sum(positive, na.rm = TRUE),
+          positiveIncrease = sum(positiveIncrease, na.rm = TRUE),
+          totalTestResults = sum(totalTestResults, na.rm = TRUE),
+          totalTestResultsIncrease = sum(totalTestResultsIncrease, na.rm = TRUE))
+
+# Add some derived variables
+bigStatData <- bigStatData %>%
+  arrange(bigState,date) %>%
+  group_by(bigState) %>%
+  mutate(activeCases = positive - recovered - death) %>%
+  mutate(activeIncrease = activeCases - lag(activeCases,1)) %>%
+  mutate(weekAverageDeaths = rollmean(deathIncrease,k=7,align="right", fill=NA)) %>%
+  mutate(weekChangeDeaths = deathIncrease - lag(deathIncrease,7)) %>%
+  mutate(weekAverageCases = rollmean(positiveIncrease,k=7,align="right", fill=NA))  %>%
+  mutate(weekChangeCases = positiveIncrease - lag(positiveIncrease,7)) %>%
+  mutate(weekAverageTests = rollmean(totalTestResultsIncrease,k=7,align="right", fill=NA))  %>%
+  mutate(weekChangeTests = totalTestResultsIncrease - lag(totalTestResultsIncrease,7)) %>%
+  mutate(positiveTestRate = positiveIncrease / totalTestResultsIncrease) %>%
+  filter(date >= as.Date("2020-03-1"))
+```
+
+This section summarizes state-level data. State-level graphs are shown for the largest 15 states by population, which account for `r format(100*sum(largeStates$total_pop_15)/sum(states$total_pop_15), digits = 1)` percent of the total U.S. population.
+
+## Deaths
+
+```{r}
+topDeaths <- currentStateData %>%
+  select(state,positive,death) %>%
+  arrange(desc(death)) %>%
+  top_n(n=10,wt=death)
+
+topDeathsTable <- topDeaths %>%  
+  rename( State = state,
+          Cases = positive,
+          Deaths = death)
+knitr::kable(topDeathsTable, caption = "Top 10 States by Deaths", format = "html", format.args = list(big.mark = ",")) %>% 
+  kable_styling()
+```
+
+```{r}
+dateBreaks = c(as.Date("2020-3-1"), as.Date("2020-4-1"), as.Date("2020-5-1"), as.Date("2020-6-1"))
+
+ggplot(bigStatData %>% filter(date == max(date)), aes(bigState,death)) +
+  geom_col() +
+  labs(title = "Deaths by State", y="Total Deaths") +
+  scale_y_continuous(labels = comma) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank()) 
+```
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=weekAverageDeaths)) + 
+  geom_line(alpha=0.4) +  
+  geom_smooth(se=FALSE, span=0.5) +
+  labs(title = "New Deaths by State", x = "Date", y = "Deaths per Day") +
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~bigState, scales = "free_y") +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=weekChangeDeaths)) + 
+  geom_col(alpha=0.5) + 
+  labs(title = "7-Day Change in Daily Deaths", x = "Date", y = "7-Day Change") +
+  geom_smooth(se=FALSE, span=0.5) + 
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~bigState, scales = "free_y") +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+```{r}
+tm_shape(stateMapData) + 
+  tm_borders() + 
+  tm_fill(col = "death", style = "log10", title = "Deaths") +    
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+```{r}
+tm_shape(stateMapData) + 
+  tm_borders() + 
+  tm_fill(col = "deathsPerMil", style = "log10", title = "Deaths per 1M") +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+## Cases
+
+```{r}
+topCases <- currentStateData %>%
+  select(state,positive,death) %>%
+  arrange(desc(positive)) %>%
+  top_n(n=10,wt=positive)
+
+topCasesTable <- topCases %>%
+  rename(State = state,
+         Cases = positive,
+         Deaths = death)
+knitr::kable(topCasesTable, caption = "Top 10 States by Cases", format = "html", format.args = list(big.mark = ",")) %>%
+  kable_styling()
+```
+
+
+```{r}
+ggplot(bigStatData %>% filter(date == max(date)), 
+       aes(bigState,positive))  +
+  geom_col() +
+  labs(title = "Cases by State", y="Total Cases") +
+  scale_y_continuous(labels = comma) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank())
+```
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=positiveIncrease)) +
+  geom_line(alpha=0.4) +  
+  geom_smooth(se=FALSE, span=0.5) + 
+  labs(title = "New Cases by State", x = "Date", y = "Cases per Day") +
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~bigState, scales = "free_y") +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=weekChangeCases)) + 
+  geom_col(alpha=0.5) +  
+  labs(title = "7-Day Change in Daily Cases", x = "Date", y = "7-Day Change") +
+  geom_smooth(se=FALSE, span=0.5) + 
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~bigState, scales = "free_y") +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+
+```{r}
+tm_shape(stateMapData) + 
+  tm_borders() + 
+  tm_fill(col = "positive", style = "log10", title = "Cases") +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+
+```{r}
+tm_shape(stateMapData) + 
+  tm_borders() + 
+  tm_fill(col = "casesPerMil", style = "log10", title = "Cases per 1M") +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+## Testing
+
+```{r}
+ggplot(bigStatData %>% filter(date == max(date)), 
+       aes(bigState,totalTestResults))  +
+  geom_col() +
+  labs(title = "Tests by State", y="Total Tests") +
+  scale_y_continuous(labels = comma) +
+  theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.x = element_blank())
+```
+
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=totalTestResultsIncrease)) +
+  geom_line(alpha=0.4) +  
+  geom_smooth(se=FALSE, span=0.5) + 
+  labs(title = "New Tests by State", x = "Date", y = "Tests per Day") +
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~bigState, scales = "free_y") +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=weekChangeTests)) + 
+  geom_col(alpha=0.5) + 
+  geom_smooth(se=FALSE, span=0.5) + 
+  labs(title = "7-Day Change in Daily Tests", x = "Date", y = "7-Day Change") +
+  scale_y_continuous(labels = comma) +
+  facet_wrap(~bigState, scales = "free_y") +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+```{r}
+ggplot(bigStatData, aes(x=date,y=positiveTestRate)) +
+  geom_line(alpha=0.4) +  
+  geom_smooth(se=FALSE, span=0.5) + 
+  labs(title = "Positive Test Rate by State", x = "Date", y = "Rate per Day") +
+  scale_y_continuous(labels = percent, limits = c(0.0,0.4)) +
+  facet_wrap(~bigState) +
+  scale_x_date(date_labels = "%b", breaks = dateBreaks)
+```
+
+```{r}
+tm_shape(stateMapData) + 
+  tm_borders() + 
+  tm_fill(col = "testsPerMil", style = "cont", title = "Tests per 1M", palette = "BuGn") +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+```{r}
+tm_shape(stateMapData) + 
+  tm_borders() + 
+  tm_fill(col = "positiveTestRate", style = "cont", title = "Positive Rate", legend.format = list(digits=1)) +
+  tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
+```
+
+Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typcially tested. The following chart compares the one week positive test rate with the one week increase in detected cases (per capita) for each state.  The states of greatest concern are those with both a high positive test rate and a large increase in cases per capita.
+
+```{r}
+stateWatchData <- left_join(stateData, statePop %>% rename(fips=st), by = "fips")
+
+stateWatchData <- stateWatchData %>%
+  group_by(state) %>%
+  arrange(state,date) %>%
+  mutate(weekAverageDeaths = rollmean(deathIncrease,k=7,align="right", fill=NA)) %>%
+  mutate(weekChangeDeaths = deathIncrease - lag(deathIncrease,7)) %>%
+  mutate(weekAverageCases = rollmean(positiveIncrease,k=7,align="right", fill=NA))  %>%
+  mutate(weekChangeCases = positiveIncrease - lag(positiveIncrease,7)) %>%
+  mutate(weekAverageTests = rollmean(totalTestResultsIncrease,k=7,align="right", fill=NA))  %>%
+  mutate(weekChangeTests = totalTestResultsIncrease - lag(totalTestResultsIncrease,7)) %>%
+  mutate(positiveTestRate = positiveIncrease / totalTestResultsIncrease) %>%
+  mutate(wkPositiveTestRate = (positive-lag(positive,7)) / (totalTestResults-lag(totalTestResults,7)) ) %>%
+  mutate(wkCasesPerCap = 1e6*(positive-lag(positive,7)) / population) %>%
+  filter(date >= max(date))
+  
+ggplot(stateWatchData, aes(x=wkPositiveTestRate,y=wkCasesPerCap,label=state)) + 
+  geom_text(size = 2) +
+  scale_x_continuous(limits = c(0.0,0.15), labels = percent) +
+  labs(title = "New Cases vs. Positive Test Rate", x = "7-Day Positive Test Rate", y = "7-Day New Cases Per Million Pop.")
+```
+
+
+# Local Data
+
+```{r}
+localData <- stateData %>% 
+  filter(state %in% c("VA","DC","MD")) %>%
+  arrange(state,date) %>%
+  group_by(state) %>%
+  mutate(weekAverageDeaths = rollmean(deathIncrease,k=7,align="right", fill=NA)) %>%
+  mutate(weekChangeDeaths = deathIncrease - lag(deathIncrease,7)) %>%
+  mutate(weekAverageCases = rollmean(positiveIncrease,k=7,align="right", fill=NA))  %>%
+  mutate(weekChangeCases = positiveIncrease - lag(positiveIncrease,7)) %>%
+  mutate(positiveTestRate = ifelse(totalTestResultsIncrease > 100,
+                                   positiveIncrease / totalTestResultsIncrease,
+                                   NA)) %>%
+  mutate(weekChangeTests = totalTestResultsIncrease - lag(totalTestResultsIncrease,7)) %>%
+  filter(date >= as.Date("2020-03-1"))
+```
+
+
+```{r}
+recentLocal <- localData %>%
+  filter(date == max(date)) %>%
+  select(state, positive, death, positiveIncrease, deathIncrease) %>%
+  rename(State=state, "Cases" = positive, "Deaths" = death, "New Cases" = positiveIncrease, "New Deaths" = deathIncrease)
+knitr::kable(recentLocal, caption = "Latest Local Data", format = "html", format.args = list(big.mark = ",")) %>%
+  kable_styling()
+```
+
+
+## Deaths
+
+```{r}
+ggplot(localData) + 
+  geom_line(mapping = aes(x = date, y = death, color = state), size = 1) +
+  labs(title = "Deaths", x = "Date", y = "Total Deaths", color = "State") +
+  scale_y_continuous(labels = comma, trans = "log10") 
+```
+
+```{r}
+ggplot(localData) +
+  geom_line(mapping = aes(x = date, y = deathIncrease), alpha = 0.4) +
+  geom_smooth(mapping = aes(x = date, y = deathIncrease), se=FALSE, span=0.5) +
+  labs(title = "New Deaths", x = "Date", y = "Deaths per Day", color = "State") +
+  facet_wrap(~state, ncol = 1, scales = "free_y") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+ggplot(localData, aes(x = date, y = weekChangeDeaths)) + 
+  geom_col(alpha = 0.5) +
+  geom_smooth(se=FALSE, span=0.5) + 
+  labs(title = "One-Week Change in Daily Deaths", x="Date", y="7-Day Change") +
+  facet_wrap(~state, ncol = 1, scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  theme(legend.position = "none")
+```
+
+```{r}
+localMapData <- countyMapData %>%
+  filter(state_fips %in% c(24,11,51)) 
+localStateMaps <- stateMapData %>%
+  filter(st %in% c(24,11,51))
+
+tm_shape(localMapData) + 
+  tm_borders(lwd = 0.3) + 
+  tm_fill(col = "deathsPerMil", style = "log10", title = "Deaths per 1M") +
+  tm_shape(localStateMaps) +
+  tm_borders(lwd = 1.5, col = "gray") +
+  tm_layout(bg.color = "skyblue")
+```
+
+```{r}
+nearMapData <- localMapData %>%
+  filter(fips %in% c(51600,51510,51610,51059,51107,51013,11001,24031,24033))
+
+tm_shape(nearMapData) + 
+  tm_borders() + 
+  tm_fill(col = "deathsPerMil", style = "log10", title = "Deaths per 1M") +
+  tm_text("county", size=0.5) +
+  tm_layout(bg.color = "skyblue")
+```
+
+## Cases
+
+```{r}
+ggplot(localData) + 
+  geom_line(mapping = aes(x = date, y = positive, color = state), size=1) +
+  labs(title = "Cases", x = "Date", y = "Total Cases", color = "State") +
+  scale_y_continuous(labels = comma, trans = "log10") 
+```
+
+```{r}
+ggplot(localData) +
+  geom_line(mapping = aes(x = date, y = positiveIncrease), alpha=0.4) +
+  geom_smooth(mapping = aes(x = date, y = positiveIncrease), se=FALSE, span=0.5) +
+  labs(title = "New Cases", x = "Date", y = "Cases per Day", color = "State") +
+  facet_wrap(~state, ncol = 1, scales = "free_y") +
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+ggplot(localData, aes(x = date, y = weekChangeCases)) + 
+  geom_col(alpha = 0.5) +
+  geom_smooth(se = FALSE, span = 0.5) +
+  labs(title = "One-Week Change in Daily Cases", x="Date", y="7-Day Change") +
+  facet_wrap(~state, ncol = 1, scales = "free_y") +
+  scale_y_continuous(labels = comma) +
+  theme(legend.position = "none")
+```
+
+```{r}
+tm_shape(localMapData) + 
+  tm_borders(lwd = 0.3) + 
+  tm_fill(col = "casesPerMil", style = "log10", title = "Cases per 1M") +
+  tm_shape(localStateMaps) +
+  tm_borders(lwd = 1.5, col = "gray") +
+  tm_layout(bg.color = "skyblue")
+```
+
+```{r}
+tm_shape(nearMapData) + 
+  tm_borders() + 
+  tm_fill(col = "casesPerMil", style = "log10", title = "Cases per 1M") +
+  tm_text("county", size=0.5) +
+  tm_layout(bg.color = "skyblue")
+```
+
+## Testing
+
+```{r}
+ggplot(localData) + 
+  geom_line(mapping = aes(x = date, y = totalTestResults, color = state), size = 1) +
+  labs(title = "Tests", x = "Date", y = "Total Tests", color = "State") +
+  scale_y_continuous(labels = comma, trans = "log10") 
+```
+
+```{r}
+ggplot(localData, aes(x = date, y = totalTestResultsIncrease)) +
+  geom_line(alpha=0.4) +
+  geom_smooth(se=FALSE, span=0.5) +
+  labs(title = "New Tests", x = "Date", y = "Tests per Day") +
+  facet_wrap(~state, scales = "free_y", ncol = 1) + 
+  scale_y_continuous(labels = comma)
+```
+
+```{r}
+ggplot(localData, aes(x = date, y = positiveTestRate)) +
+  geom_line(alpha=0.4) +
+  geom_smooth(se=FALSE, span=0.5) +
+  labs(title = "Positive Test Rate", x = "Date", y = "Rate") +
+  scale_y_continuous(labels = percent_format(2), limits = c(0.0,0.4)) +
+  facet_wrap(~state, ncol = 1) 
+```
