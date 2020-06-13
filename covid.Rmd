@@ -1,13 +1,13 @@
 ---
 title: "Erik's Covid-19 Chart Pack"
 output:
+  pdf_document: default
+  html_notebook: default
   html_document:
     df_print: paged
-  html_notebook: default
-  pdf_document: default
 ---
 
-Data upadated `r Sys.time()`.  World data are from [Worldometers](https://github.com/NovelCovid/API). National and state-level mortality, case, and testing data are from [Johns-Hopkins University](https://covidtracking.com). County and city-level mortality and case data are from the [New York Times](https://github.com/NovelCovid/API). Most data presented in this report were accessed through APIs provided by [The COVID Tracking Project](https://covidtracking.com) and [NovelCOVID API](https://github.com/NovelCovid/API).
+Data updated `r Sys.time()`.  World data are from [Worldometers](https://github.com/NovelCovid/API). National and state-level mortality, case, and testing data are from [Johns-Hopkins University](https://covidtracking.com). County and city-level mortality and case data are from the [New York Times](https://github.com/NovelCovid/API). Most data presented in this report were accessed through APIs provided by [The COVID Tracking Project](https://covidtracking.com) and [NovelCOVID API](https://github.com/NovelCovid/API).
 
 ```{r setup, include=FALSE}
 
@@ -32,6 +32,7 @@ knitr::opts_chunk$set(
   message = FALSE
 )
 theme_set(theme_bw())
+knitr::opts_chunk$set(fig.width=6, fig.height=4) 
 
 # Import world data
 continents <- fromJSON("https://disease.sh/v2/continents?yesterday=true") %>%
@@ -60,9 +61,10 @@ usData <- usData %>%
 
 # World Data
 
-There have been `r format(sum(countries$cases),big.mark = ",")` confirmed covid-19 cases and `r format(sum(countries$deaths),big.mark = ",")` deaths worldwide.
+There have been `r format(sum(countries$cases),big.mark = ",")` confirmed Covid-19 cases and `r format(sum(countries$deaths),big.mark = ",")` deaths worldwide.
 
-```{r}
+
+```{r, fig.height=3.5, fig.width=6}
 ggplot(continents, aes(x=continent,y=deaths)) +
   geom_col() +
   labs(title = "Deaths", y="Total Deaths") +
@@ -71,7 +73,7 @@ ggplot(continents, aes(x=continent,y=deaths)) +
   coord_flip()
 ```
 
-```{r}
+```{r, fig.height=3.5, fig.width=6}
 ggplot(continents, aes(x=continent,y=cases)) +
   geom_col() +
   labs(title = "Cases", y="Total Cases") +
@@ -80,26 +82,9 @@ ggplot(continents, aes(x=continent,y=cases)) +
   coord_flip()
 ```
 
+\newpage
 
-
-```{r}
-countryList <- c("US","GB","CN")
-
-countryTable <- countries %>% 
-  select(country,cases,deaths,todayCases,todayDeaths) %>%
-  rename(Cases = cases, Deaths = deaths, "New Cases" = todayCases, "New Deaths" = todayDeaths) %>%
-  arrange(desc(Cases)) %>%
-  head(10)
-
-knitr::kable( 
-  countryTable,
-  caption = "Top Countries by Cases", 
-  digits = 8, format = "html",
-  format.args = list(big.mark = ",")) %>% 
-  kable_styling()
-```
-
-```{r}
+```{r, fig.width=6,fig.height=3.5}
 data("World")
 World$iso_a3 <- as.character(World$iso_a3)
 World <- st_transform(World,4326)
@@ -113,34 +98,34 @@ tm_shape(worldMapData) + tm_borders() +
   tm_layout(bg.color = "skyblue")
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=3.5}
 tm_shape(worldMapData) + tm_borders() + 
   tm_fill(col = "casesPerOneMillion", style = "log10", title = "Cases per Million") +
   tm_layout(bg.color = "skyblue")
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=3.5}
 tm_shape(worldMapData) + tm_borders() + 
   tm_fill(col = "testsPerOneMillion", style = "log10", title = "Tests per Million", palette = "BuGn") +
   tm_layout(bg.color = "skyblue")
 ```
 
+\newpage
+
 # National Data
 
-There have been `r format(max(usData$positive),big.mark = ",")` confirmed covid-19 cases and `r format(max(usData$death),big.mark = ",")` deaths in the United States.
+There have been `r format(max(usData$positive),big.mark = ",")` confirmed Covid-19 cases and `r format(max(usData$death),big.mark = ",")` deaths in the United States.
 
 ```{r}
-usData %>% 
-  select(date,positive,death,positiveIncrease,deathIncrease) %>% 
-  arrange(desc(date)) %>%
-  top_n(n=7,wt=date) %>%
-  rename(Date = date, 
-         "Cases" = positive, 
-         "Deaths" = death, 
-         "New Cases" = positiveIncrease, 
-         "New Deaths" = deathIncrease) %>%
-  knitr::kable(caption = "Last 7 Days", digits = c(8,7,7,7,7,2,2), format = "html", format.args = list(big.mark = ",")) %>% 
-  kable_styling()
+#usData %>% 
+#  select(date,positive,death,positiveIncrease,deathIncrease) %>% 
+#  arrange(desc(date)) %>%
+#  top_n(n=7,wt=date) %>%
+#  rename(Date = date, 
+#         "Cases" = positive, 
+#         "Deaths" = death, 
+#         "New Cases" = positiveIncrease, 
+#         "New Deaths" = deathIncrease)
 
 counties <- get_urbn_map("counties", sf = TRUE) %>%
   st_transform(2163) %>%
@@ -164,6 +149,8 @@ countyMapData$deathsPerMil[countyMapData$deathsPerMil < 0.1] = 0.1
 
 ## Deaths
 
+Because the effects of the virus can take several weeks to manifest in patients, deaths are a lagging indicator of contagion, but they may be a more reliable than case counts, which are a function of both the prevalence of the disease and the rate of testing.
+
 ```{r}
 ggplot(usData) + 
   geom_line(mapping = aes(x = date, y = death), size = 1) +
@@ -178,6 +165,8 @@ ggplot(usData) +
   labs(title = "New Deaths", x = "Date", y = "Deaths per Day") +
   scale_y_continuous(labels = comma)
 ```
+
+The case mortality rate is a very crude indicator of lethality because a large numbers of non-lethal cases are likely never detected. A declining case mortality rate is indicative of more widespread testing.
 
 ```{r}
 ggplot(usData, aes(x = date, y = deathIncrease/lag(positiveIncrease,14))) +
@@ -195,7 +184,7 @@ ggplot(usData, aes(x = date, y = weekChangeDeaths)) +
   scale_y_continuous(labels = comma)
 ```
 
-```{r}
+```{r, fig.width=7, fig.height=6}
 tm_shape(countyMapData) + 
   tm_borders(lwd = 0.3) + 
 #  tm_fill(col = "deathsPerTho",  style = "fixed", breaks = c(0,0.01,0.1,0.5,1.0,3.0), title = "Deaths Per 1K") +
@@ -203,8 +192,10 @@ tm_shape(countyMapData) +
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
 
-
+\newpage
 ## Cases
+
+Reported cases are a function of both the spread of the disease and the prevalence of testing.
 
 ```{r}
 ggplot(usData) +
@@ -229,7 +220,7 @@ ggplot(usData, aes(x = date, y = weekChangeCases)) +
   scale_y_continuous(labels = comma)
 ```
 
-```{r}
+```{r, fig.width=7, fig.height=6}
 tm_shape(countyMapData) + 
   tm_borders(lwd = 0.3) + 
 #  tm_fill(col = "casesPerTho", style = "fixed", breaks = c(0,0.1,1.0,5.0,10.0,30.0), title = "Cases Per 1K") +
@@ -237,8 +228,10 @@ tm_shape(countyMapData) +
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
 
-
+\newpage
 ## Testing
+
+Widespread testing is necessary for managing the spread of the disease. The following charts show how testing in the United States has changed over time.
 
 ```{r}
 ggplot(usData) +
@@ -254,6 +247,8 @@ ggplot(usData) +
   labs(title = "New Tests", x = "Date", y = "Tests Per Day") +
   scale_y_continuous(labels = comma)
 ```
+
+When the supply of available tests is limited, they are typically only used for patients whose symptoms suggest they are likely to have contracted the virus. A high positive test rate indicates that testing capacity is constrained.
 
 ```{r}
 ggplot(usData) +
@@ -271,7 +266,7 @@ ggplot(usData,  aes(x = date, y = weekChangeTests)) +
   scale_y_continuous(labels = comma)
 ```
 
-
+\newpage
 # State Data
 
 
@@ -358,7 +353,7 @@ bigStatData <- bigStatData %>%
   filter(date >= as.Date("2020-03-1"))
 ```
 
-This section summarizes state-level data. State-level graphs are shown for the largest 15 states by population, which account for `r format(100*sum(largeStates$total_pop_15)/sum(states$total_pop_15), digits = 1)` percent of the total U.S. population.
+This section summarizes state-level data. Most data are reported for the largest 15 states by population, which account for `r format(100*sum(largeStates$total_pop_15)/sum(states$total_pop_15), digits = 1)` percent of the total U.S. population.
 
 ## Deaths
 
@@ -372,8 +367,7 @@ topDeathsTable <- topDeaths %>%
   rename( State = state,
           Cases = positive,
           Deaths = death)
-knitr::kable(topDeathsTable, caption = "Top 10 States by Deaths", format = "html", format.args = list(big.mark = ",")) %>% 
-  kable_styling()
+
 ```
 
 ```{r}
@@ -386,7 +380,7 @@ ggplot(bigStatData %>% filter(date == max(date)), aes(bigState,death)) +
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank()) 
 ```
 
-```{r}
+```{r, fig.height=6, fig.width=7}
 ggplot(bigStatData, aes(x=date,y=weekAverageDeaths)) + 
   geom_line(alpha=0.4) +  
   geom_smooth(se=FALSE, span=0.5) +
@@ -396,7 +390,7 @@ ggplot(bigStatData, aes(x=date,y=weekAverageDeaths)) +
   scale_x_date(date_labels = "%b", breaks = dateBreaks)
 ```
 
-```{r}
+```{r, fig.height=6, fig.width=7}
 ggplot(bigStatData, aes(x=date,y=weekChangeDeaths)) + 
   geom_col(alpha=0.5) + 
   labs(title = "7-Day Change in Daily Deaths", x = "Date", y = "7-Day Change") +
@@ -405,21 +399,23 @@ ggplot(bigStatData, aes(x=date,y=weekChangeDeaths)) +
   facet_wrap(~bigState, scales = "free_y") +
   scale_x_date(date_labels = "%b", breaks = dateBreaks)
 ```
+\newpage
 
-```{r}
+```{r, fig.height=5, fig.width=6}
 tm_shape(stateMapData) + 
   tm_borders() + 
   tm_fill(col = "death", style = "log10", title = "Deaths") +    
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
 
-```{r}
+```{r, fig.height=5, fig.width=6}
 tm_shape(stateMapData) + 
   tm_borders() + 
   tm_fill(col = "deathsPerMil", style = "log10", title = "Deaths per 1M") +
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
 
+\newpage
 ## Cases
 
 ```{r}
@@ -432,8 +428,6 @@ topCasesTable <- topCases %>%
   rename(State = state,
          Cases = positive,
          Deaths = death)
-knitr::kable(topCasesTable, caption = "Top 10 States by Cases", format = "html", format.args = list(big.mark = ",")) %>%
-  kable_styling()
 ```
 
 
@@ -446,7 +440,7 @@ ggplot(bigStatData %>% filter(date == max(date)),
   theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(), axis.title.y = element_blank())
 ```
 
-```{r}
+```{r, fig.width=7, fig.height=6}
 ggplot(bigStatData, aes(x=date,y=positiveIncrease)) +
   geom_line(alpha=0.4) +  
   geom_smooth(se=FALSE, span=0.5) + 
@@ -456,7 +450,7 @@ ggplot(bigStatData, aes(x=date,y=positiveIncrease)) +
   scale_x_date(date_labels = "%b", breaks = dateBreaks)
 ```
 
-```{r}
+```{r, fig.width=7, fig.height=6}
 ggplot(bigStatData, aes(x=date,y=weekChangeCases)) + 
   geom_col(alpha=0.5) +  
   labs(title = "7-Day Change in Daily Cases", x = "Date", y = "7-Day Change") +
@@ -465,9 +459,9 @@ ggplot(bigStatData, aes(x=date,y=weekChangeCases)) +
   facet_wrap(~bigState, scales = "free_y") +
   scale_x_date(date_labels = "%b", breaks = dateBreaks)
 ```
+\newpage
 
-
-```{r}
+```{r, fig.height=5, fig.width=6}
 tm_shape(stateMapData) + 
   tm_borders() + 
   tm_fill(col = "positive", style = "log10", title = "Cases") +
@@ -475,13 +469,14 @@ tm_shape(stateMapData) +
 ```
 
 
-```{r}
+```{r, fig.height=5, fig.width=6}
 tm_shape(stateMapData) + 
   tm_borders() + 
   tm_fill(col = "casesPerMil", style = "log10", title = "Cases per 1M") +
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
 
+\newpage
 ## Testing
 
 ```{r}
@@ -494,7 +489,7 @@ ggplot(bigStatData %>% filter(date == max(date)),
 ```
 
 
-```{r}
+```{r, fig.width=7, fig.height=6}
 ggplot(bigStatData, aes(x=date,y=totalTestResultsIncrease)) +
   geom_line(alpha=0.4) +  
   geom_smooth(se=FALSE, span=0.5) + 
@@ -504,43 +499,25 @@ ggplot(bigStatData, aes(x=date,y=totalTestResultsIncrease)) +
   scale_x_date(date_labels = "%b", breaks = dateBreaks)
 ```
 
-```{r}
-ggplot(bigStatData, aes(x=date,y=weekChangeTests)) + 
-  geom_col(alpha=0.5) + 
-  geom_smooth(se=FALSE, span=0.5) + 
-  labs(title = "7-Day Change in Daily Tests", x = "Date", y = "7-Day Change") +
-  scale_y_continuous(labels = comma) +
-  facet_wrap(~bigState, scales = "free_y") +
-  scale_x_date(date_labels = "%b", breaks = dateBreaks)
-```
-
-```{r}
-ggplot(bigStatData, aes(x=date,y=positiveTestRate)) +
-  geom_line(alpha=0.4) +  
-  geom_smooth(se=FALSE, span=0.5) + 
-  labs(title = "Positive Test Rate by State", x = "Date", y = "Rate per Day") +
-  scale_y_continuous(labels = percent, limits = c(0.0,0.4)) +
-  facet_wrap(~bigState) +
-  scale_x_date(date_labels = "%b", breaks = dateBreaks)
-```
-
-```{r}
+\newpage
+```{r, fig.width=6, fig.height=5}
 tm_shape(stateMapData) + 
   tm_borders() + 
   tm_fill(col = "testsPerMil", style = "cont", title = "Tests per 1M", palette = "BuGn") +
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=5}
 tm_shape(stateMapData) + 
   tm_borders() + 
   tm_fill(col = "positiveTestRate", style = "cont", title = "Positive Rate", legend.format = list(digits=1)) +
   tm_layout(bg.color = "skyblue", legend.position = c("left","top"))
 ```
+\newpage
 
-Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typcially tested. The following chart compares the one week positive test rate with the one week increase in detected cases (per capita) for each state.  The states of greatest concern are those with both a high positive test rate and a large increase in cases per capita.
+Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typically tested. The following chart compares the one week positive test rate with the one week increase in detected cases per capita for each state.  The states of greatest current concern are those with both a high positive test rate and a large increase in detected cases per capita.
 
-```{r}
+```{r, fig.width=6.5, fig.height=6}
 stateWatchData <- left_join(stateData, statePop %>% rename(fips=st), by = "fips")
 
 stateWatchData <- stateWatchData %>%
@@ -563,8 +540,10 @@ ggplot(stateWatchData, aes(x=wkPositiveTestRate,y=wkCasesPerCap,label=state)) +
   labs(title = "New Cases vs. Positive Test Rate", x = "7-Day Positive Test Rate", y = "7-Day New Cases Per Million Pop.")
 ```
 
-
+\newpage
 # Local Data
+
+The following charts present mortality, case, and testing data for the Washington DC metropolitan area.
 
 ```{r}
 localData <- stateData %>% 
@@ -588,10 +567,7 @@ recentLocal <- localData %>%
   filter(date == max(date)) %>%
   select(state, positive, death, positiveIncrease, deathIncrease) %>%
   rename(State=state, "Cases" = positive, "Deaths" = death, "New Cases" = positiveIncrease, "New Deaths" = deathIncrease)
-knitr::kable(recentLocal, caption = "Latest Local Data", format = "html", format.args = list(big.mark = ",")) %>%
-  kable_styling()
 ```
-
 
 ## Deaths
 
@@ -602,7 +578,7 @@ ggplot(localData) +
   scale_y_continuous(labels = comma, trans = "log10") 
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=6}
 ggplot(localData) +
   geom_line(mapping = aes(x = date, y = deathIncrease), alpha = 0.4) +
   geom_smooth(mapping = aes(x = date, y = deathIncrease), se=FALSE, span=0.5) +
@@ -611,7 +587,7 @@ ggplot(localData) +
   scale_y_continuous(labels = comma)
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=6}
 ggplot(localData, aes(x = date, y = weekChangeDeaths)) + 
   geom_col(alpha = 0.5) +
   geom_smooth(se=FALSE, span=0.5) + 
@@ -621,7 +597,7 @@ ggplot(localData, aes(x = date, y = weekChangeDeaths)) +
   theme(legend.position = "none")
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=5}
 localMapData <- countyMapData %>%
   filter(state_fips %in% c(24,11,51)) 
 localStateMaps <- stateMapData %>%
@@ -635,7 +611,7 @@ tm_shape(localMapData) +
   tm_layout(bg.color = "skyblue")
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=5}
 nearMapData <- localMapData %>%
   filter(fips %in% c(51600,51510,51610,51059,51107,51013,11001,24031,24033))
 
@@ -646,6 +622,7 @@ tm_shape(nearMapData) +
   tm_layout(bg.color = "skyblue")
 ```
 
+\newpage
 ## Cases
 
 ```{r}
@@ -655,7 +632,7 @@ ggplot(localData) +
   scale_y_continuous(labels = comma, trans = "log10") 
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=6}
 ggplot(localData) +
   geom_line(mapping = aes(x = date, y = positiveIncrease), alpha=0.4) +
   geom_smooth(mapping = aes(x = date, y = positiveIncrease), se=FALSE, span=0.5) +
@@ -664,7 +641,7 @@ ggplot(localData) +
   scale_y_continuous(labels = comma)
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=6}
 ggplot(localData, aes(x = date, y = weekChangeCases)) + 
   geom_col(alpha = 0.5) +
   geom_smooth(se = FALSE, span = 0.5) +
@@ -674,7 +651,7 @@ ggplot(localData, aes(x = date, y = weekChangeCases)) +
   theme(legend.position = "none")
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=5}
 tm_shape(localMapData) + 
   tm_borders(lwd = 0.3) + 
   tm_fill(col = "casesPerMil", style = "log10", title = "Cases per 1M") +
@@ -683,7 +660,7 @@ tm_shape(localMapData) +
   tm_layout(bg.color = "skyblue")
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=5}
 tm_shape(nearMapData) + 
   tm_borders() + 
   tm_fill(col = "casesPerMil", style = "log10", title = "Cases per 1M") +
@@ -691,6 +668,7 @@ tm_shape(nearMapData) +
   tm_layout(bg.color = "skyblue")
 ```
 
+\newpage
 ## Testing
 
 ```{r}
@@ -700,7 +678,7 @@ ggplot(localData) +
   scale_y_continuous(labels = comma, trans = "log10") 
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=6}
 ggplot(localData, aes(x = date, y = totalTestResultsIncrease)) +
   geom_line(alpha=0.4) +
   geom_smooth(se=FALSE, span=0.5) +
@@ -709,7 +687,7 @@ ggplot(localData, aes(x = date, y = totalTestResultsIncrease)) +
   scale_y_continuous(labels = comma)
 ```
 
-```{r}
+```{r, fig.width=6, fig.height=6}
 ggplot(localData, aes(x = date, y = positiveTestRate)) +
   geom_line(alpha=0.4) +
   geom_smooth(se=FALSE, span=0.5) +
