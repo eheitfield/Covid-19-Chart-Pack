@@ -6,3 +6,4 @@ The complete chart pack can be found [here](https://github.com/eheitfield/Covid-
 
 The R Markdown file used to generate the chart pack is available [here](https://github.com/eheitfield/Covid-19-Chart-Pack/blob/master/covid.Rmd).
 
+![alt text](Tests_vs_Cases.png "Tests vs. Cases")
