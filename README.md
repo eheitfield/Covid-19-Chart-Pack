@@ -5,3 +5,4 @@ This repository contains data visualizations of publicly available Covid-19 deat
 The complete chart pack can be found [here](https://github.com/eheitfield/Covid-19-Chart-Pack/blob/master/covid.pdf).
 
 The R Markdown file used to generate the chart pack is available [here](https://github.com/eheitfield/Covid-19-Chart-Pack/blob/master/covid.Rmd).
+
