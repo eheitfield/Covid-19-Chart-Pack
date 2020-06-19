@@ -515,7 +515,7 @@ tm_shape(stateMapData) +
 ```
 \newpage
 
-Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typically tested. The following chart compares the one-week increase in detected cases to the the number of tests administered per state (relative to population).  The states of greatest current concern are those with both a large increase in detected cases and a relatively small increase tests.  These states lie in the upper-right of the chart.
+Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typically tested. The following chart compares the one-week increase in detected cases to the the number of tests administered by each state relative to population.  The states of greatest current concern are those with both a large increase in detected cases and a relatively small increase in tests.  These states lie in the upper-right of the chart.
 
 ```{r, fig.width=6.5, fig.height=6}
 stateWatchData <- left_join(stateData, statePop %>% rename(fips=st), by = "fips")
@@ -550,8 +550,12 @@ ggplot(stateWatchData, aes(x=wkTestsPerCap,y=wkCasesPerCap, size=0.1*population,
        y = "7-Day New Cases per Million",
        caption = "Point size proportional to state population.") +
   theme(legend.position = "none")
-  
 ```
+
+```{r}
+ggsave("Tests_vs_Cases.png")
+```
+
 
 \newpage
 # Local Data
