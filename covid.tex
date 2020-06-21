@@ -99,7 +99,7 @@
 \begin{document}
 \maketitle
 
-Data updated 2020-06-20 19:00:33. World data are from
+Data updated 2020-06-21 19:00:01. World data are from
 \href{https://github.com/NovelCovid/API}{Worldometers}. National and
 state-level mortality, case, and testing data are from
 \href{https://covidtracking.com}{Johns-Hopkins University}. County and
@@ -112,7 +112,7 @@ presented in this report were accessed through APIs provided by
 \hypertarget{world-data}{%
 \section{World Data}\label{world-data}}
 
-There have been 8,750,990 confirmed Covid-19 cases and 461,820 deaths
+There have been 8,908,555 confirmed Covid-19 cases and 466,266 deaths
 worldwide.
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-1-1.pdf}
@@ -121,19 +121,113 @@ worldwide.
 
 \newpage
 
-\includegraphics{covid_files/figure-latex/unnamed-chunk-3-1.pdf}
+\begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-3}Top Countries by Total Cases}
+\centering
+\begin{tabular}{l|r|r|r|r}
+\hline
+Country & Cases & Deaths & New Cases & New Deaths\\
+\hline
+USA & 2,330,578 & 121,980 & 33,388 & 573\\
+\hline
+Brazil & 1,070,139 & 50,058 & 31,571 & 968\\
+\hline
+Russia & 576,952 & 8,002 & 7,889 & 161\\
+\hline
+India & 411,727 & 13,277 & 15,915 & 307\\
+\hline
+UK & 303,110 & 42,589 & 1,295 & 128\\
+\hline
+Spain & 293,018 & 28,322 & 363 & 7\\
+\hline
+Peru & 251,338 & 7,861 & 3,413 & 201\\
+\hline
+Italy & 238,275 & 34,610 & 264 & 49\\
+\hline
+Chile & 236,748 & 4,295 & 5,355 & 202\\
+\hline
+Iran & 202,584 & 9,507 & 2,322 & 115\\
+\hline
+Germany & 191,216 & 8,961 & 556 & 1\\
+\hline
+Turkey & 186,493 & 4,927 & 1,248 & 22\\
+\hline
+Pakistan & 171,666 & 3,382 & 6,604 & 153\\
+\hline
+Mexico & 170,485 & 20,394 & 5,030 & 647\\
+\hline
+France & 160,093 & 29,633 & 641 & 16\\
+\hline
+Saudi Arabia & 154,233 & 1,230 & 3,941 & 46\\
+\hline
+Bangladesh & 108,775 & 1,425 & 3,240 & 37\\
+\hline
+Canada & 101,019 & 8,410 & 390 & 64\\
+\hline
+South Africa & 92,681 & 1,877 & 4,966 & 46\\
+\hline
+Qatar & 86,488 & 94 & 1,026 & 1\\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-4-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-5-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-6-1.pdf}
 
 \newpage
 
 \hypertarget{national-data}{%
 \section{National Data}\label{national-data}}
 
-There have been 2,241,990 confirmed Covid-19 cases and 113,452 deaths in
+There have been 2,269,455 confirmed Covid-19 cases and 113,749 deaths in
 the United States.
+
+\begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-8}U.S. Deaths and Cases over the Last Two Weeks}
+\centering
+\begin{tabular}{l|r|r|r|r}
+\hline
+Date & Cases & Deaths & New Cases & New Deaths\\
+\hline
+2020-06-21 & 2,269,455 & 113,749 & 27,465 & 297\\
+\hline
+2020-06-20 & 2,241,990 & 113,452 & 32,325 & 630\\
+\hline
+2020-06-19 & 2,209,665 & 112,822 & 31,327 & 648\\
+\hline
+2020-06-18 & 2,178,338 & 112,174 & 27,406 & 697\\
+\hline
+2020-06-17 & 2,150,932 & 111,477 & 23,885 & 782\\
+\hline
+2020-06-16 & 2,127,047 & 110,695 & 23,498 & 713\\
+\hline
+2020-06-15 & 2,103,549 & 109,982 & 18,521 & 375\\
+\hline
+2020-06-14 & 2,085,028 & 109,607 & 21,486 & 358\\
+\hline
+2020-06-13 & 2,063,542 & 109,249 & 25,344 & 695\\
+\hline
+2020-06-12 & 2,038,198 & 108,554 & 23,318 & 775\\
+\hline
+2020-06-11 & 2,014,880 & 107,779 & 22,023 & 912\\
+\hline
+2020-06-10 & 1,992,857 & 106,867 & 20,749 & 878\\
+\hline
+2020-06-09 & 1,972,108 & 105,989 & 17,166 & 902\\
+\hline
+2020-06-08 & 1,954,942 & 105,087 & 17,123 & 655\\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
 
 \hypertarget{deaths}{%
 \subsection{Deaths}\label{deaths}}
@@ -141,21 +235,20 @@ the United States.
 Because the effects of the virus can take several weeks to manifest in
 patients, deaths are a lagging indicator of contagion, but they may be a
 more reliable than case counts, which are a function of both the
-prevalence of the disease and the rate of testing.
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-7-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-8-1.pdf}
-
-The case mortality rate is a very crude indicator of lethality because a
-large numbers of non-lethal cases are likely never detected. A declining
-case mortality rate is indicative of more widespread testing.
+prevalence of the disease and the rate of testing. The case mortality
+rate is a very crude indicator of lethality because a large numbers of
+non-lethal cases are likely never detected. A declining case mortality
+rate is indicative of more widespread testing.
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-9-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-10-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-11-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-12-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-13-1.pdf}
 
 \newpage
 
@@ -165,13 +258,13 @@ case mortality rate is indicative of more widespread testing.
 Reported cases are a function of both the spread of the disease and the
 prevalence of testing.
 
-\includegraphics{covid_files/figure-latex/unnamed-chunk-12-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-13-1.pdf}
-
 \includegraphics{covid_files/figure-latex/unnamed-chunk-14-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-15-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-16-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-17-1.pdf}
 
 \newpage
 
@@ -180,20 +273,18 @@ prevalence of testing.
 
 Widespread testing is necessary for managing the spread of the disease.
 The following charts show how testing in the United States has changed
-over time.
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-16-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-17-1.pdf}
-
-When the supply of available tests is limited, they are typically only
-used for patients whose symptoms suggest they are likely to have
-contracted the virus. A high positive test rate indicates that testing
-capacity is constrained.
+over time. When the supply of available tests is limited, they are
+typically only used for patients whose symptoms suggest they are likely
+to have contracted the virus. A high positive test rate indicates that
+testing capacity is constrained.
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-18-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-19-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-20-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-21-1.pdf}
 
 \newpage
 
@@ -207,37 +298,28 @@ total U.S. population.
 \hypertarget{deaths-1}{%
 \subsection{Deaths}\label{deaths-1}}
 
-\includegraphics{covid_files/figure-latex/unnamed-chunk-22-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-23-1.pdf}
-
 \includegraphics{covid_files/figure-latex/unnamed-chunk-24-1.pdf}
-\newpage
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-25-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-26-1.pdf}
+\newpage
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-27-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-28-1.pdf}
 
 \newpage
 
 \hypertarget{cases-1}{%
 \subsection{Cases}\label{cases-1}}
 
-\includegraphics{covid_files/figure-latex/unnamed-chunk-28-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-29-1.pdf}
-
 \includegraphics{covid_files/figure-latex/unnamed-chunk-30-1.pdf}
-\newpage
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-31-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-32-1.pdf}
-
 \newpage
-
-\hypertarget{testing-1}{%
-\subsection{Testing}\label{testing-1}}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-33-1.pdf}
 
@@ -245,9 +327,18 @@ total U.S. population.
 
 \newpage
 
+\hypertarget{testing-1}{%
+\subsection{Testing}\label{testing-1}}
+
 \includegraphics{covid_files/figure-latex/unnamed-chunk-35-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-36-1.pdf}
+
+\newpage
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-37-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-38-1.pdf}
 \newpage
 
 Interpretation of differences in case rates across states is complicated
@@ -259,25 +350,40 @@ positive are typically tested. The following chart compares the one-week
 increase in detected cases to the the number of tests administered by
 each state relative to population. The states of greatest current
 concern are those with both a large increase in detected cases and a
-relatively small increase in tests. These states lie in the upper-right
+relatively small increase in tests. These states lie in the upper-left
 of the chart.
 
-\includegraphics{covid_files/figure-latex/unnamed-chunk-37-1.pdf}
+\includegraphics{covid_files/figure-latex/unnamed-chunk-39-1.pdf}
 
 \newpage
 
 \hypertarget{local-data}{%
 \section{Local Data}\label{local-data}}
 
-The following charts present mortality, case, and testing data for the
-Washington DC metropolitan area.
+The following charts and tables present mortality, case, and testing
+data for the Washington DC metropolitan area and adjacent states.
+
+\begin{table}[!h]
+
+\caption{\label{tab:unnamed-chunk-42}Latest Local Data}
+\centering
+\begin{tabular}{l|r|r|r|r}
+\hline
+State & Cases & Deaths & New Cases & New Deaths\\
+\hline
+DC & 10,020 & 533 & 36 & 2\\
+\hline
+MD & 64,306 & 3,066 & 350 & 14\\
+\hline
+VA & 57,994 & 1,611 & 551 & 4\\
+\hline
+\end{tabular}
+\end{table}
+
+\newpage
 
 \hypertarget{deaths-2}{%
 \subsection{Deaths}\label{deaths-2}}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-41-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-42-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-43-1.pdf}
 
@@ -285,14 +391,14 @@ Washington DC metropolitan area.
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-45-1.pdf}
 
+\includegraphics{covid_files/figure-latex/unnamed-chunk-46-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-47-1.pdf}
+
 \newpage
 
 \hypertarget{cases-2}{%
 \subsection{Cases}\label{cases-2}}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-46-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-47-1.pdf}
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-48-1.pdf}
 
@@ -300,16 +406,20 @@ Washington DC metropolitan area.
 
 \includegraphics{covid_files/figure-latex/unnamed-chunk-50-1.pdf}
 
+\includegraphics{covid_files/figure-latex/unnamed-chunk-51-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-52-1.pdf}
+
 \newpage
 
 \hypertarget{testing-2}{%
 \subsection{Testing}\label{testing-2}}
 
-\includegraphics{covid_files/figure-latex/unnamed-chunk-51-1.pdf}
-
-\includegraphics{covid_files/figure-latex/unnamed-chunk-52-1.pdf}
-
 \includegraphics{covid_files/figure-latex/unnamed-chunk-53-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-54-1.pdf}
+
+\includegraphics{covid_files/figure-latex/unnamed-chunk-55-1.pdf}
 
 
 \end{document}
