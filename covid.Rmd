@@ -84,6 +84,23 @@ ggplot(continents, aes(x=continent,y=cases)) +
 
 \newpage
 
+```{r}
+countryTable <- countries %>% 
+  select(country,cases,deaths,todayCases,todayDeaths) %>%
+  rename(Country = country, Cases = cases, Deaths = deaths, "New Cases" = todayCases, "New Deaths" = todayDeaths) %>%
+  arrange(desc(Cases)) %>%
+  head(20)
+
+knitr::kable( 
+  countryTable,
+  caption = "Top Countries by Total Cases", 
+  digits = 8, format = "latex",
+  format.args = list(big.mark = ",")) %>% 
+  kable_styling(latex_options = "hold_position")
+```
+
+\newpage
+
 ```{r, fig.width=6,fig.height=3.5}
 data("World")
 World$iso_a3 <- as.character(World$iso_a3)
@@ -147,9 +164,26 @@ countyMapData <- countyMapData %>%
 countyMapData$deathsPerMil[countyMapData$deathsPerMil < 0.1] = 0.1
 ```
 
+
+```{r}
+usData %>% 
+  select(date,positive,death,positiveIncrease,deathIncrease) %>% 
+  arrange(desc(date)) %>%
+  top_n(n=14,wt=date) %>%
+  rename(Date = date, 
+         "Cases" = positive, 
+         "Deaths" = death, 
+         "New Cases" = positiveIncrease, 
+         "New Deaths" = deathIncrease) %>%
+  knitr::kable(caption = "U.S. Deaths and Cases over the Last Two Weeks", digits = c(8,7,7,7,7,2,2), format = "latex", format.args = list(big.mark = ",")) %>% 
+  kable_styling(latex_options = "hold_position")
+```
+
+\newpage
+
 ## Deaths
 
-Because the effects of the virus can take several weeks to manifest in patients, deaths are a lagging indicator of contagion, but they may be a more reliable than case counts, which are a function of both the prevalence of the disease and the rate of testing.
+Because the effects of the virus can take several weeks to manifest in patients, deaths are a lagging indicator of contagion, but they may be a more reliable than case counts, which are a function of both the prevalence of the disease and the rate of testing. The case mortality rate is a very crude indicator of lethality because a large numbers of non-lethal cases are likely never detected. A declining case mortality rate is indicative of more widespread testing.
 
 ```{r}
 ggplot(usData) + 
@@ -166,7 +200,6 @@ ggplot(usData) +
   scale_y_continuous(labels = comma)
 ```
 
-The case mortality rate is a very crude indicator of lethality because a large numbers of non-lethal cases are likely never detected. A declining case mortality rate is indicative of more widespread testing.
 
 ```{r}
 ggplot(usData, aes(x = date, y = deathIncrease/lag(positiveIncrease,14))) +
@@ -231,7 +264,7 @@ tm_shape(countyMapData) +
 \newpage
 ## Testing
 
-Widespread testing is necessary for managing the spread of the disease. The following charts show how testing in the United States has changed over time.
+Widespread testing is necessary for managing the spread of the disease. The following charts show how testing in the United States has changed over time. When the supply of available tests is limited, they are typically only used for patients whose symptoms suggest they are likely to have contracted the virus. A high positive test rate indicates that testing capacity is constrained.
 
 ```{r}
 ggplot(usData) +
@@ -248,7 +281,6 @@ ggplot(usData) +
   scale_y_continuous(labels = comma)
 ```
 
-When the supply of available tests is limited, they are typically only used for patients whose symptoms suggest they are likely to have contracted the virus. A high positive test rate indicates that testing capacity is constrained.
 
 ```{r}
 ggplot(usData) +
@@ -515,7 +547,7 @@ tm_shape(stateMapData) +
 ```
 \newpage
 
-Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typically tested. The following chart compares the one-week increase in detected cases to the the number of tests administered by each state relative to population.  The states of greatest current concern are those with both a large increase in detected cases and a relatively small increase in tests.  These states lie in the upper-right of the chart.
+Interpretation of differences in case rates across states is complicated by the fact that those states that do more thorough testing will invariably uncover more cases. A lower positive test rate is an indication that a state is doing more comprehensive testing since, when testing is rationed, only those individuals who are more likely to test positive are typically tested. The following chart compares the one-week increase in detected cases to the the number of tests administered by each state relative to population.  The states of greatest current concern are those with both a large increase in detected cases and a relatively small increase in tests.  These states lie in the upper-left of the chart.
 
 ```{r, fig.width=6.5, fig.height=6}
 stateWatchData <- left_join(stateData, statePop %>% rename(fips=st), by = "fips")
@@ -560,7 +592,8 @@ ggsave("Tests_vs_Cases.png")
 \newpage
 # Local Data
 
-The following charts present mortality, case, and testing data for the Washington DC metropolitan area.
+The following charts and tables present mortality, case, and testing data for the Washington DC metropolitan area and adjacent states.
+
 
 ```{r}
 localData <- stateData %>% 
@@ -584,8 +617,11 @@ recentLocal <- localData %>%
   filter(date == max(date)) %>%
   select(state, positive, death, positiveIncrease, deathIncrease) %>%
   rename(State=state, "Cases" = positive, "Deaths" = death, "New Cases" = positiveIncrease, "New Deaths" = deathIncrease)
+knitr::kable(recentLocal, caption = "Latest Local Data", format = "latex", format.args = list(big.mark = ",")) %>%
+  kable_styling(latex_options = "hold_position")
 ```
 
+\newpage
 ## Deaths
 
 ```{r}
