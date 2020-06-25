@@ -568,22 +568,23 @@ stateWatchData <- stateWatchData %>%
   filter(date >= max(date))
   
 rates <- c(0.10,0.05,0.02)
-ggplot(stateWatchData, aes(x=wkTestsPerCap,y=wkCasesPerCap, size=0.1*population,label=state)) + 
-  geom_point(aes(x=wkTestsPerCap,y=wkCasesPerCap,size=population), alpha = 0.25) +
-  geom_text() +
+
+ggplot(stateWatchData) + 
   geom_abline(intercept = 0, slope = rates[1], linetype = "dashed", size = 0.5, color = "gray") +
-  geom_text(aes(15000,15000*rates[1]), label="10% Positive", size = 2.5, hjust = 1.1, color = "gray") +
+  geom_text(aes(15000,15000*rates[1]), label="10% Positive", size = 2.5, hjust = 1.2, color = "gray") +
   geom_abline(intercept = 0, slope = rates[2], linetype = "dashed", size = 0.5, color = "gray") +
-  geom_text(aes(20000,20000*rates[2]), label="5% Positive", size = 2.5, hjust = 1.2, color = "gray") +
+  geom_text(aes(20000,20000*rates[2]), label="5% Positive", size = 2.5, hjust = 1.5, color = "gray") +
   geom_abline(intercept = 0, slope =rates[3], linetype = "dashed", size = 0.5, color = "gray") +
-  geom_text(aes(20000,20000*rates[3]), label="2% Positive", size = 2.5, hjust = 1.3, color = "gray") +
+  geom_text(aes(25000,25000*rates[3]), label="2% Positive", size = 2.5, hjust = 1.8, color = "gray") +
+  geom_point(aes(x=wkTestsPerCap,y=wkCasesPerCap,size=population), alpha = 0.25) +
+  geom_text(aes(x=wkTestsPerCap,y=wkCasesPerCap, size=0.08*population,label=state)) +
   labs(title = "Tests vs. Cases by State", 
        x = "7-Day New Tests per Million", 
        y = "7-Day New Cases per Million",
        caption = "Point size proportional to state population.") +
+  theme(legend.position = "none") +
   scale_x_continuous(limits = c(0.0, NA)) +
-  scale_y_continuous(limits = c(0.0,NA)) +
-  theme(legend.position = "none") 
+  scale_y_continuous(limits = c(0.0,NA))
 ```
 
 ```{r}
