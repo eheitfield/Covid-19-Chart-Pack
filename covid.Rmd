@@ -581,7 +581,9 @@ ggplot(stateWatchData, aes(x=wkTestsPerCap,y=wkCasesPerCap, size=0.1*population,
        x = "7-Day New Tests per Million", 
        y = "7-Day New Cases per Million",
        caption = "Point size proportional to state population.") +
-  theme(legend.position = "none")
+  scale_x_continuous(limits = c(0.0, NA)) +
+  scale_y_continuous(limits = c(0.0,NA)) +
+  theme(legend.position = "none") 
 ```
 
 ```{r}
